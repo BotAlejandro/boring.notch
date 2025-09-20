@@ -187,22 +187,11 @@ struct MusicControlsView: View {
         }
     }
 
-    private var mediaButtonAccentColor: Color {
-        switch Defaults[.shuffleRepeatColor] {
-        case .albumArt:
-            return Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.8)
-        case .accent:
-            return Defaults[.shuffleRepeatAccentColor]?.swiftUIColor ?? Color.systemAccent
-        case .white:
-            return .white
-        }
-    }
-
     private var playbackControls: some View {
         HStack(spacing: 8) {
             if showShuffleAndRepeat {
                 HoverButton(
-                    icon: "shuffle", iconColor: musicManager.isShuffled ? mediaButtonAccentColor : .white,
+                    icon: "shuffle", iconColor: musicManager.isShuffled ? .red : .white,
                     scale: .medium
                 ) {
                     MusicManager.shared.toggleShuffle()
@@ -242,7 +231,7 @@ struct MusicControlsView: View {
         case .off:
             return .white
         case .all, .one:
-            return mediaButtonAccentColor
+            return .red
         }
     }
 }
@@ -315,17 +304,6 @@ struct MusicSliderView: View {
     let isPlaying: Bool
     var onValueChange: (Double) -> Void
 
-    private var sliderTrackColor: Color {
-        switch Defaults[.sliderColor] {
-        case .albumArt:
-            return Color(nsColor: color).ensureMinimumBrightness(factor: 0.8)
-        case .accent:
-            return Defaults[.sliderAccentColor]?.swiftUIColor ?? Color.systemAccent
-        case .white:
-            return .white
-        }
-    }
-
     var currentElapsedTime: Double {
         // A small buffer is needed to ensure a meaningful difference between the two dates
         guard !dragging, timestampDate.timeIntervalSince(lastDragged) > -1 else {
@@ -341,7 +319,11 @@ struct MusicSliderView: View {
             CustomSlider(
                 value: $sliderValue,
                 range: 0...duration,
-                color: sliderTrackColor,
+                color: Defaults[.sliderColor] == SliderColorEnum.albumArt
+                    ? Color(
+                        nsColor: color
+                    ).ensureMinimumBrightness(factor: 0.8)
+                    : Defaults[.sliderColor] == SliderColorEnum.accent ? .accentColor : .white,
                 dragging: $dragging,
                 lastDragged: $lastDragged,
                 onValueChange: onValueChange
