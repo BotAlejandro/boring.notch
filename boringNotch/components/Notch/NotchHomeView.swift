@@ -192,7 +192,7 @@ struct MusicControlsView: View {
         case .albumArt:
             return Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.8)
         case .accent:
-            return Defaults[.shuffleRepeatAccentColor]?.swiftUIColor ?? Color.systemAccent
+            return .accentColor
         case .white:
             return .white
         }
@@ -320,7 +320,7 @@ struct MusicSliderView: View {
         case .albumArt:
             return Color(nsColor: color).ensureMinimumBrightness(factor: 0.8)
         case .accent:
-            return Defaults[.sliderAccentColor]?.swiftUIColor ?? Color.systemAccent
+            return .accentColor
         case .white:
             return .white
         }

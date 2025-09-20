@@ -928,22 +928,6 @@ struct Appearance: View {
     @State private var name: String = ""
     @State private var url: String = ""
     @State private var speed: CGFloat = 1.0
-    private var sliderAccentBinding: Binding<Color> {
-        Binding(get: {
-            Defaults[.sliderAccentColor]?.swiftUIColor ?? Color.systemAccent
-        }, set: { newValue in
-            Defaults[.sliderAccentColor] = CodableColor(color: newValue)
-        })
-    }
-
-    private var shuffleAccentBinding: Binding<Color> {
-        Binding(get: {
-            Defaults[.shuffleRepeatAccentColor]?.swiftUIColor ?? Color.systemAccent
-        }, set: { newValue in
-            Defaults[.shuffleRepeatAccentColor] = CodableColor(color: newValue)
-        })
-    }
-
     var body: some View {
         Form {
             Section {
@@ -966,16 +950,10 @@ struct Appearance: View {
                         Text(option.rawValue)
                     }
                 }
-                if sliderColor == .accent {
-                    ColorPicker("Slider accent color", selection: sliderAccentBinding, supportsOpacity: false)
-                }
                 Picker("Shuffle & repeat color", selection: $shuffleRepeatColor) {
                     ForEach(SliderColorEnum.allCases, id: \.self) { option in
                         Text(option.rawValue)
                     }
-                }
-                if shuffleRepeatColor == .accent {
-                    ColorPicker("Shuffle & repeat accent color", selection: shuffleAccentBinding, supportsOpacity: false)
                 }
             } header: {
                 Text("Media")

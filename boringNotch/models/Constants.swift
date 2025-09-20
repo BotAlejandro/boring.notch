@@ -101,17 +101,9 @@ extension Defaults.Keys {
         "sliderUseAlbumArtColor",
         default: SliderColorEnum.white
     )
-    static let sliderAccentColor = Key<CodableColor?>(
-        "sliderAccentColor",
-        default: nil
-    )
     static let shuffleRepeatColor = Key<SliderColorEnum>(
         "shuffleRepeatColor",
         default: SliderColorEnum.white
-    )
-    static let shuffleRepeatAccentColor = Key<CodableColor?>(
-        "shuffleRepeatAccentColor",
-        default: nil
     )
     static let playerColorTinting = Key<Bool>("playerColorTinting", default: true)
     static let useMusicVisualizer = Key<Bool>("useMusicVisualizer", default: true)
