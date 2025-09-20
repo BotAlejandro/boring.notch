@@ -28,6 +28,9 @@ struct ContentView: View {
     @State private var isHoverStateChanging: Bool = false
 
     @State private var gestureProgress: CGFloat = .zero
+    @State private var horizontalGestureProgress: CGFloat = .zero
+    @State private var horizontalGestureExecuted: Bool = false
+    @State private var activePanDirection: PanDirection? = nil  // Direction lock to avoid diagonal double triggers
 
     @State private var haptics: Bool = false
 
@@ -132,6 +135,15 @@ struct ContentView: View {
                             handleUpGesture(translation: translation, phase: phase)
                         }
                 }
+                .conditionalModifier(Defaults[.horizontalGesturesEnabled] && Defaults[.enableGestures]) { view in
+                    view
+                        .panGesture(direction: .left) { translation, phase in
+                            handleLeftGesture(translation: translation, phase: phase)
+                        }
+                        .panGesture(direction: .right) { translation, phase in
+                            handleRightGesture(translation: translation, phase: phase)
+                        }
+                }
                 .onAppear(perform: {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                         withAnimation(vm.animation) {
@@ -153,6 +165,12 @@ struct ContentView: View {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                             isHoverStateChanging = false
                         }
+                    }
+                    
+                    // Reset horizontal gesture progress when notch state changes
+                    withAnimation(.smooth) {
+                        horizontalGestureProgress = 0.0
+                        horizontalGestureExecuted = false
                     }
                 }
                 .onChange(of: vm.isBatteryPopoverActive) { _, newPopoverState in
@@ -239,7 +257,7 @@ struct ContentView: View {
                       } else if vm.notchState == .open {
                           BoringHeader()
                               .frame(height: max(24, vm.effectiveClosedNotchHeight))
-                              .blur(radius: abs(gestureProgress) > 0.3 ? min(abs(gestureProgress), 8) : 0)
+                              .blur(radius: abs(horizontalGestureProgress) > 0.1 ? min(abs(horizontalGestureProgress), 2) : 0)
                               .animation(.spring(response: 1, dampingFraction: 1, blendDuration: 0.8), value: vm.notchState)
                        } else {
                            Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: vm.effectiveClosedNotchHeight)
@@ -288,8 +306,8 @@ struct ContentView: View {
             }
             .zIndex(1)
             .allowsHitTesting(vm.notchState == .open)
-            .blur(radius: abs(gestureProgress) > 0.3 ? min(abs(gestureProgress), 8) : 0)
-            .opacity(abs(gestureProgress) > 0.3 ? min(abs(gestureProgress * 2), 0.8) : 1)
+            .blur(radius: abs(horizontalGestureProgress) > 0.1 ? min(abs(horizontalGestureProgress), 2) : 0)
+            .opacity(abs(horizontalGestureProgress) > 0.1 ? min(abs(horizontalGestureProgress * 2), 0.9) : 1)
         }
     }
 
@@ -510,16 +528,24 @@ struct ContentView: View {
     // MARK: - Gesture Handling
 
     private func handleDownGesture(translation: CGFloat, phase: NSEvent.Phase) {
-        guard vm.notchState == .closed else { return }
-
-        withAnimation(.smooth) {
-            gestureProgress = (translation / Defaults[.gestureSensitivity]) * 20
-        }
-
-        if phase == .ended {
+        if phase.contains(.ended) || phase.contains(.cancelled) {
             withAnimation(.smooth) {
                 gestureProgress = .zero
             }
+            activePanDirection = nil
+            return
+        }
+
+        guard vm.notchState == .closed else { return }
+
+        if activePanDirection == nil {
+            activePanDirection = .down
+        } else if activePanDirection != .down {
+            return
+        }
+
+        withAnimation(.smooth) {
+            gestureProgress = (translation / Defaults[.gestureSensitivity]) * 20
         }
 
         if translation > Defaults[.gestureSensitivity] {
@@ -534,26 +560,140 @@ struct ContentView: View {
     }
 
     private func handleUpGesture(translation: CGFloat, phase: NSEvent.Phase) {
-        if vm.notchState == .open && !vm.isHoveringCalendar {
+        if phase.contains(.ended) || phase.contains(.cancelled) {
             withAnimation(.smooth) {
-                gestureProgress = (translation / Defaults[.gestureSensitivity]) * -20
+                gestureProgress = .zero
+            }
+            activePanDirection = nil
+            return
+        }
+
+        guard vm.notchState == .open, !vm.isHoveringCalendar else { return }
+
+        if activePanDirection == nil {
+            activePanDirection = .up
+        } else if activePanDirection != .up {
+            return
+        }
+
+        withAnimation(.smooth) {
+            gestureProgress = (translation / Defaults[.gestureSensitivity]) * -20
+        }
+
+        if translation > Defaults[.gestureSensitivity] {
+            withAnimation(.smooth) {
+                gestureProgress = .zero
+                isHovering = false
+            }
+            vm.close()
+
+            if Defaults[.enableHaptics] {
+                haptics.toggle()
+            }
+        }
+    }
+
+    private func handleLeftGesture(translation: CGFloat, phase: NSEvent.Phase) {
+        if phase.contains(.ended) || phase.contains(.cancelled) {
+            withAnimation(.smooth) {
+                horizontalGestureProgress = 0.0
+            }
+            horizontalGestureExecuted = false
+            activePanDirection = nil
+            return
+        }
+
+        if activePanDirection == nil {
+            activePanDirection = .left
+        } else if activePanDirection != .left {
+            return
+        }
+
+        guard !horizontalGestureExecuted else { return }
+
+        withAnimation(.smooth) {
+            horizontalGestureProgress = (translation / Defaults[.gestureSensitivity]) * -20
+        }
+
+        // Trigger next song when gesture threshold is reached (only once per gesture)
+        if translation > Defaults[.gestureSensitivity] {
+            horizontalGestureExecuted = true
+
+            let invertDirection = Defaults[.invertHorizontalGestureDirection]
+
+            // Immediately reset progress when action is triggered
+            withAnimation(.smooth) {
+                horizontalGestureProgress = 0.0
             }
 
-            if phase == .ended {
-                withAnimation(.smooth) {
-                    gestureProgress = .zero
-                }
+            // Trigger track change based on direction preference
+            if invertDirection {
+                MusicManager.shared.previousTrack()
+            } else {
+                MusicManager.shared.nextTrack()
             }
 
-            if translation > Defaults[.gestureSensitivity] {
-                withAnimation(.smooth) {
-                    gestureProgress = .zero
-                    isHovering = false
-                }
-                vm.close()
+            if Defaults[.enableHaptics] {
+                haptics.toggle()
+            }
 
-                if Defaults[.enableHaptics] {
-                    haptics.toggle()
+            // Safety reset after a short delay to ensure progress is cleared even if momentum events continue
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                withAnimation(.smooth) {
+                    horizontalGestureProgress = 0.0
+                }
+            }
+        }
+    }
+
+    private func handleRightGesture(translation: CGFloat, phase: NSEvent.Phase) {
+        if phase.contains(.ended) || phase.contains(.cancelled) {
+            withAnimation(.smooth) {
+                horizontalGestureProgress = 0.0
+            }
+            horizontalGestureExecuted = false
+            activePanDirection = nil
+            return
+        }
+
+        if activePanDirection == nil {
+            activePanDirection = .right
+        } else if activePanDirection != .right {
+            return
+        }
+
+        guard !horizontalGestureExecuted else { return }
+
+        withAnimation(.smooth) {
+            horizontalGestureProgress = (translation / Defaults[.gestureSensitivity]) * 20
+        }
+
+        // Trigger previous song when gesture threshold is reached (only once per gesture)
+        if translation > Defaults[.gestureSensitivity] {
+            horizontalGestureExecuted = true
+
+            let invertDirection = Defaults[.invertHorizontalGestureDirection]
+
+            // Immediately reset progress when action is triggered
+            withAnimation(.smooth) {
+                horizontalGestureProgress = 0.0
+            }
+
+            // Trigger track change based on direction preference
+            if invertDirection {
+                MusicManager.shared.nextTrack()
+            } else {
+                MusicManager.shared.previousTrack()
+            }
+
+            if Defaults[.enableHaptics] {
+                haptics.toggle()
+            }
+
+            // Safety reset after a short delay to ensure progress is cleared even if momentum events continue
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                withAnimation(.smooth) {
+                    horizontalGestureProgress = 0.0
                 }
             }
         }
