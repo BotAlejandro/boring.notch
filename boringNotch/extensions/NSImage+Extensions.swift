@@ -167,3 +167,22 @@ extension Color {
         return Color(red: Double(red), green: Double(green), blue: Double(blue), opacity: Double(alpha))
     }
 }
+
+extension NSColor {
+    func adjustedForUI(minSaturation: CGFloat = 0.45,
+                       minBrightness: CGFloat = 0.25,
+                       maxBrightness: CGFloat = 0.85) -> NSColor {
+        guard let rgb = usingColorSpace(.sRGB) else { return self }
+
+        var hue: CGFloat = 0
+        var saturation: CGFloat = 0
+        var brightness: CGFloat = 0
+        var alpha: CGFloat = 0
+        rgb.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+
+        saturation = max(saturation, minSaturation)
+        brightness = min(max(brightness, minBrightness), maxBrightness)
+
+        return NSColor(calibratedHue: hue, saturation: saturation, brightness: brightness, alpha: alpha)
+    }
+}

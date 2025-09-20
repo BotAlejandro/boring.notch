@@ -333,7 +333,11 @@ class MusicManager: ObservableObject {
         albumArt.averageColor { [weak self] color in
             DispatchQueue.main.async {
                 withAnimation(.smooth) {
-                    self?.avgColor = color ?? .white
+                    if let color {
+                        self?.avgColor = color.adjustedForUI()
+                    } else {
+                        self?.avgColor = NSColor.white.adjustedForUI()
+                    }
                 }
             }
         }

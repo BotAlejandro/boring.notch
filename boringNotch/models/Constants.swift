@@ -7,6 +7,61 @@
 
 import SwiftUI
 import Defaults
+import AppKit
+
+struct CodableColor: Codable, Defaults.Serializable {
+    let red: Double
+    let green: Double
+    let blue: Double
+    let alpha: Double
+
+    init(nsColor: NSColor) {
+        let converted = nsColor.usingColorSpace(.sRGB) ?? nsColor
+        red = Double(converted.redComponent)
+        green = Double(converted.greenComponent)
+        blue = Double(converted.blueComponent)
+        alpha = Double(converted.alphaComponent)
+    }
+
+    init(color: Color) {
+        #if os(macOS)
+        self.init(nsColor: NSColor(color))
+        #else
+        self.init(nsColor: NSColor.white)
+        #endif
+    }
+
+    var swiftUIColor: Color { Color(red: red, green: green, blue: blue, opacity: alpha) }
+    var nsColor: NSColor { NSColor(calibratedRed: red.toCGFloat, green: green.toCGFloat, blue: blue.toCGFloat, alpha: alpha.toCGFloat) }
+}
+
+private extension Double {
+    var toCGFloat: CGFloat { CGFloat(self) }
+}
+
+extension Color {
+    static var systemAccent: Color {
+        #if os(macOS)
+        Color(nsColor: NSColor.controlAccentColor)
+        #else
+        .accentColor
+        #endif
+    }
+
+    var hsbComponents: (hue: Double, saturation: Double, brightness: Double) {
+        #if os(macOS)
+        let ns = NSColor(self).usingColorSpace(.deviceRGB) ?? NSColor(self)
+        var h: CGFloat = 0
+        var s: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+        ns.getHue(&h, saturation: &s, brightness: &b, alpha: &a)
+        return (Double(h), Double(s), Double(b))
+        #else
+        return (0, 0, 0)
+        #endif
+    }
+}
 
 private let availableDirectories = FileManager
     .default
@@ -101,9 +156,17 @@ extension Defaults.Keys {
         "sliderUseAlbumArtColor",
         default: SliderColorEnum.white
     )
+    static let sliderAccentColor = Key<CodableColor?>(
+        "sliderAccentColor",
+        default: nil
+    )
     static let shuffleRepeatColor = Key<SliderColorEnum>(
         "shuffleRepeatColor",
         default: SliderColorEnum.white
+    )
+    static let shuffleRepeatAccentColor = Key<CodableColor?>(
+        "shuffleRepeatAccentColor",
+        default: nil
     )
     static let playerColorTinting = Key<Bool>("playerColorTinting", default: true)
     static let useMusicVisualizer = Key<Bool>("useMusicVisualizer", default: true)

@@ -928,6 +928,22 @@ struct Appearance: View {
     @State private var name: String = ""
     @State private var url: String = ""
     @State private var speed: CGFloat = 1.0
+    private var sliderAccentBinding: Binding<Color> {
+        Binding(get: {
+            Defaults[.sliderAccentColor]?.swiftUIColor ?? Color.systemAccent
+        }, set: { newValue in
+            Defaults[.sliderAccentColor] = CodableColor(color: newValue)
+        })
+    }
+
+    private var shuffleAccentBinding: Binding<Color> {
+        Binding(get: {
+            Defaults[.shuffleRepeatAccentColor]?.swiftUIColor ?? Color.systemAccent
+        }, set: { newValue in
+            Defaults[.shuffleRepeatAccentColor] = CodableColor(color: newValue)
+        })
+    }
+
     var body: some View {
         Form {
             Section {
@@ -950,10 +966,18 @@ struct Appearance: View {
                         Text(option.rawValue)
                     }
                 }
+                if sliderColor == .accent {
+                    AccentColorPicker(label: "Slider accent color", color: sliderAccentBinding)
+                        .padding(.top, 4)
+                }
                 Picker("Shuffle & repeat color", selection: $shuffleRepeatColor) {
                     ForEach(SliderColorEnum.allCases, id: \.self) { option in
                         Text(option.rawValue)
                     }
+                }
+                if shuffleRepeatColor == .accent {
+                    AccentColorPicker(label: "Shuffle & repeat accent color", color: shuffleAccentBinding)
+                        .padding(.top, 4)
                 }
             } header: {
                 Text("Media")
@@ -1203,6 +1227,15 @@ struct Appearance: View {
         }
 
         return false
+    }
+}
+
+struct AccentColorPicker: View {
+    let label: String
+    @Binding var color: Color
+
+    var body: some View {
+        ColorPicker(label, selection: $color, supportsOpacity: false)
     }
 }
 
