@@ -141,6 +141,7 @@ struct GeneralSettings: View {
     @Default(.notchHeight) var notchHeight
     @Default(.notchHeightMode) var notchHeightMode
     @Default(.showOnAllDisplays) var showOnAllDisplays
+    @Default(.horizontalGesturesEnabled) var horizontalGesturesEnabled
     @Default(.automaticallySwitchDisplay) var automaticallySwitchDisplay
     @Default(.enableGestures) var enableGestures
     @Default(.openNotchOnHover) var openNotchOnHover
@@ -265,10 +266,11 @@ struct GeneralSettings: View {
     func gestureControls() -> some View {
         Section {
             Defaults.Toggle("Enable gestures", key: .enableGestures)
-                .disabled(!openNotchOnHover)
             if enableGestures {
-                Toggle("Media change with horizontal gestures", isOn: .constant(false))
-                    .disabled(true)
+                Defaults.Toggle("Media change with horizontal gestures", key: .horizontalGesturesEnabled)
+                if horizontalGesturesEnabled {
+                    Defaults.Toggle("Invert horizontal media swipe direction", key: .invertHorizontalGestureDirection)
+                }
                 Defaults.Toggle("Close gesture", key: .closeGestureEnabled)
                 Slider(value: $gestureSensitivity, in: 100...300, step: 100) {
                     HStack {
@@ -914,6 +916,7 @@ struct Appearance: View {
     @ObservedObject var coordinator = BoringViewCoordinator.shared
     @Default(.mirrorShape) var mirrorShape
     @Default(.sliderColor) var sliderColor
+    @Default(.shuffleRepeatColor) var shuffleRepeatColor
     @Default(.useMusicVisualizer) var useMusicVisualizer
     @Default(.customVisualizers) var customVisualizers
     @Default(.selectedVisualizer) var selectedVisualizer
@@ -925,6 +928,22 @@ struct Appearance: View {
     @State private var name: String = ""
     @State private var url: String = ""
     @State private var speed: CGFloat = 1.0
+    private var sliderAccentBinding: Binding<Color> {
+        Binding(get: {
+            Defaults[.sliderAccentColor]?.swiftUIColor ?? Color.systemAccent
+        }, set: { newValue in
+            Defaults[.sliderAccentColor] = CodableColor(color: newValue)
+        })
+    }
+
+    private var shuffleAccentBinding: Binding<Color> {
+        Binding(get: {
+            Defaults[.shuffleRepeatAccentColor]?.swiftUIColor ?? Color.systemAccent
+        }, set: { newValue in
+            Defaults[.shuffleRepeatAccentColor] = CodableColor(color: newValue)
+        })
+    }
+
     var body: some View {
         Form {
             Section {
@@ -946,6 +965,17 @@ struct Appearance: View {
                     ForEach(SliderColorEnum.allCases, id: \.self) { option in
                         Text(option.rawValue)
                     }
+                }
+                if sliderColor == .accent {
+                    ColorPicker("Slider accent color", selection: sliderAccentBinding, supportsOpacity: false)
+                }
+                Picker("Shuffle & repeat color", selection: $shuffleRepeatColor) {
+                    ForEach(SliderColorEnum.allCases, id: \.self) { option in
+                        Text(option.rawValue)
+                    }
+                }
+                if shuffleRepeatColor == .accent {
+                    ColorPicker("Shuffle & repeat accent color", selection: shuffleAccentBinding, supportsOpacity: false)
                 }
             } header: {
                 Text("Media")

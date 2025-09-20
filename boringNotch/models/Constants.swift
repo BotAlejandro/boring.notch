@@ -101,6 +101,18 @@ extension Defaults.Keys {
         "sliderUseAlbumArtColor",
         default: SliderColorEnum.white
     )
+    static let sliderAccentColor = Key<CodableColor?>(
+        "sliderAccentColor",
+        default: nil
+    )
+    static let shuffleRepeatColor = Key<SliderColorEnum>(
+        "shuffleRepeatColor",
+        default: SliderColorEnum.white
+    )
+    static let shuffleRepeatAccentColor = Key<CodableColor?>(
+        "shuffleRepeatAccentColor",
+        default: nil
+    )
     static let playerColorTinting = Key<Bool>("playerColorTinting", default: true)
     static let useMusicVisualizer = Key<Bool>("useMusicVisualizer", default: true)
     static let customVisualizers = Key<[CustomVisualizer]>("customVisualizers", default: [])
@@ -109,6 +121,8 @@ extension Defaults.Keys {
         // MARK: Gestures
     static let enableGestures = Key<Bool>("enableGestures", default: true)
     static let closeGestureEnabled = Key<Bool>("closeGestureEnabled", default: true)
+    static let horizontalGesturesEnabled = Key<Bool>("horizontalGesturesEnabled", default: false)
+    static let invertHorizontalGestureDirection = Key<Bool>("invertHorizontalGestureDirection", default: false)
     static let gestureSensitivity = Key<CGFloat>("gestureSensitivity", default: 200.0)
     
         // MARK: Media playback
